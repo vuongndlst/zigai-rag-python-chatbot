@@ -1,0 +1,64 @@
+/* ---------- highlight cho code ---------- */
+@import "highlight.js/styles/github-dark.css";
+
+/* ---------- DESIGN TOKENS ---------- */
+:root {
+  --radius: 0.75rem;
+
+  --primary: 59 130 246;      /* #3B82F6 (blue-500) */
+  --primary-foreground: 255 255 255;
+
+  --secondary: 243 244 246;   /* gray-100 */
+  --secondary-foreground: 17 24 39;  /* gray-900 */
+
+  --card: 255 255 255;        /* white */
+  --card-foreground: 17 24 39;
+
+  --background: 250 250 250;
+  --foreground: 17 24 39;
+
+  --border: 229 231 235;
+  --input : 229 231 235;
+  --ring  : 148 163 184;
+}
+
+/* Dark (nếu cần) */
+.dark {
+  --background: 17 24 39;
+  --foreground: 243 244 246;
+
+  --card: 31 41 55;
+  --card-foreground: 243 244 246;
+
+  --secondary: 55 65 81;
+  --secondary-foreground: 243 244 246;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- BASIC RESET ---------- */
+body {
+  @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))] antialiased;
+  font-family: Inter, sans-serif;
+}
+
+
+/* ---------- gradient nền rất nhẹ ---------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse at top right,
+      rgb(59 130 246 / 0.05),
+      transparent 70%);
+}
+
+/* ---------- Bubble base ---------- */
+.bubble {
+  @apply prose prose-sm sm:prose-base break-words whitespace-pre-wrap
+         p-4 rounded-2xl shadow-sm transition-opacity duration-150 my-4;
+}
+.bubble:hover { @apply opacity-95; }

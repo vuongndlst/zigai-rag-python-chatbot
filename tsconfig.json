@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    /* ---- chỉnh lại phần quan trọng ---- */
+    "module": "esnext", // từ "commonjs" → "esnext"
+    "moduleResolution": "bundler", // giữ nguyên
+    /* ----------------------------------- */
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "scripts/seedAdmin.js"
+  ],
+  /* bỏ override cũ gây lỗi cho ts-node;
+     nếu muốn giữ, hãy bảo đảm module = "esnext" */
+  "ts-node": {
+    "compilerOptions": {
+      "module": "esnext"
+    },
+    "transpileOnly": true // bật transpile-only để seed nhanh
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
