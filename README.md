@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Chào mừng bạn đến với **Python GPT RAG Chatbot** – một chatbot AI sinh văn bản (Generative AI) hỗ trợ học sinh trung học phổ thông (THPT) trong việc học lập trình Python. Ứng dụng này sử dụng các công nghệ hiện đại như **Retriever-Augmented Generation (RAG)**, **LangChain.js**, **Next.js**, **OpenAI**, **Astra Vector DB** và **Vercel** để tạo nên một trợ lý học tập mạnh mẽ, dễ sử dụng và cập nhật liên tục từ tài liệu thật.
+Chào mừng bạn đến với **Python GPT RAG Chatbot** – một chatbot AI sinh văn bản (Generative AI) hỗ trợ học sinh trung học phổ thông (THPT) trong việc học lập trình Python. Ứng dụng này sử dụng các công nghệ hiện đại như **Retriever-Augmented Generation (RAG)**, **LangChain.js**, **Next.js**, **OpenAI**, **Astra Vector DB** để tạo nên một trợ lý học tập mạnh mẽ, dễ sử dụng và cập nhật liên tục từ tài liệu thật.
 
 ### Tính năng nổi bật
 
@@ -43,7 +43,7 @@ Trước khi bắt đầu, bạn cần chuẩn bị:
 - **Backend**: Node.js  
 - **AI & NLP**: LangChain.js, OpenAI GPT-4  
 - **Cơ sở dữ liệu vector**: DataStax Astra DB  
-- **Triển khai**: Vercel  
+- **Triển khai**: Hiện tại localhost, tương lai Vercel  
 - **Thu thập dữ liệu**: Puppeteer  
 
 ---
@@ -120,22 +120,71 @@ Dùng để tự động hóa việc thu thập dữ liệu từ các website t�
 ## Cấu trúc thư mục
 
 ```
-python-gpt-chatbot/
-├── src/
-│   ├── app/            # Cấu trúc chính của Next.js
-│   ├── components/     # Các component React có thể tái sử dụng
-│   ├── scripts/        # Script dùng để thu thập và nạp dữ liệu
-│   └── styles/         # CSS và style toàn cục
-├── .env                # Biến môi trường
-├── package.json        # Danh sách thư viện và lệnh npm
-└── README.md           # Tài liệu hướng dẫn
+zigai-rag-chatbot-python/
+├── app/                       # Route, layout và logic chính của ứng dụng Next.js
+│   ├── (auth)/               # Các route liên quan đến xác thực (login, register...)
+│   ├── admin/                # Giao diện quản trị
+│   ├── api/                  # API endpoint cho server-side logic
+│   ├── assets/               # Tài nguyên tĩnh như hình ảnh
+│   ├── components/           # Component dùng riêng trong app (tách biệt với global)
+│   ├── globals.css           # CSS toàn cục
+│   ├── layout.tsx            # Layout mặc định cho app
+│   ├── page.tsx              # Trang chính (homepage)
+│   └── providers.tsx         # Cung cấp context toàn cục
+│
+├── components/               # Các thành phần UI tái sử dụng (dùng chung toàn app)
+│   └── ui/                   # UI component như button, input, modal...
+│
+├── docs/                     # Tài liệu dự án dành cho seeding dữ liệu (file pdf các bài giảng,...)
+│
+├── lib/                      # Thư viện tiện ích & dịch vụ backend
+│   ├── astra.ts              # Kết nối Astra DB
+│   ├── auth.ts               # Xử lý xác thực
+│   ├── chatModel.ts          # Giao tiếp với LLM
+│   ├── chatService.ts        # Xử lý tạo/lưu tin nhắn
+│   ├── db.ts                 # Kết nối cơ sở dữ liệu
+│   ├── mongodb.ts            # Cấu hình MongoDB
+│   ├── requireAdmin.ts       # Middleware kiểm tra quyền admin
+│   ├── seedService.ts        # Hàm khởi tạo dữ liệu mẫu
+│   └── utils.ts              # Tiện ích chung
+│
+├── models/                   # Định nghĩa mô hình dữ liệu (MongoDB schema)
+│   ├── Chat.ts
+│   ├── SeedLog.ts
+│   ├── Source.ts
+│   ├── User.js
+│   └── User.ts
+│
+├── pages/                    # API legacy (Next.js `pages/api`)
+│   └── api/                  # API route cũ
+│
+├── scripts/                  # Script khởi tạo, seed dữ liệu
+│   ├── loadDb.ts
+│   └── seedAdmin.js
+│
+├── .env                      # Biến môi trường runtime
+├── .env.example              # Mẫu biến môi trường để tham khảo
+├── .eslintrc.json            # Cấu hình ESLint (kiểm tra mã nguồn)
+├── .gitignore                # Danh sách file cần bỏ qua khi push Git
+├── README.md                 # Mô tả tổng quan dự án
+├── components.json           # Cấu hình/tài nguyên component (có thể dùng với Tailwind)
+├── middleware.ts             # Middleware xử lý yêu cầu Next.js
+├── next-env.d.ts             # Kiểu TypeScript cho Next.js
+├── next.config.ts            # Cấu hình Next.js
+├── package.json              # Thông tin và dependencies dự án
+├── package-lock.json         # Phiên bản lock của dependency
+├── postcss.config.js         # Cấu hình PostCSS
+├── tailwind.config.js        # Cấu hình Tailwind CSS
+├── tsconfig.json             # Cấu hình TypeScript chính
+└── tsconfig.seed.json        # TS config riêng cho script seed
+
 ```
 
 ---
 
 ## Triển khai
 
-Triển khai lên **Vercel** rất đơn giản:
+Triển khai lên **Vercel** (Đang thực hiện):
 
 1. Đẩy code lên GitHub.
 2. Kết nối GitHub với Vercel.
@@ -146,4 +195,4 @@ Triển khai lên **Vercel** rất đơn giản:
 
 ## Nguồn tham khảo
 
-Dự án dựa trên khóa học của **Ana Kubo** và được tài trợ bởi **DataStax**.
+Dự án dựa trên khóa học của **Ana Kubo** và được tài trợ bởi **DataStax**. Tác giả đã nâng cấp thêm nhiều tính năng
