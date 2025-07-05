@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Chào mừng bạn đến với **Python GPT RAG Chatbot** – một chatbot AI sinh văn bản (Generative AI) hỗ trợ học sinh trung học phổ thông (THPT) trong việc học lập trình Python. Ứng dụng này sử dụng các công nghệ hiện đại như **Retriever-Augmented Generation (RAG)**, **LangChain.js**, **Next.js**, **OpenAI**, **Astra Vector DB** và **Vercel** để tạo nên một trợ lý học tập mạnh mẽ, dễ sử dụng và cập nhật liên tục từ tài liệu thật.
+Chào mừng bạn đến với **Python GPT RAG Chatbot** – một chatbot AI sinh văn bản (Generative AI) hỗ trợ học sinh trung học phổ thông (THPT) trong việc học lập trình Python. Ứng dụng này sử dụng các công nghệ hiện đại như **Retriever-Augmented Generation (RAG)**, **LangChain.js**, **Next.js**, **OpenAI**, **Astra Vector DB** để tạo nên một trợ lý học tập mạnh mẽ, dễ sử dụng và cập nhật liên tục từ tài liệu thật.
 
 ### Tính năng nổi bật
 
