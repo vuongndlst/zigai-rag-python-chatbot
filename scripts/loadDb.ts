@@ -61,8 +61,10 @@ const pythonVnUrls: string[] = [
   "https://howkteam.vn/learn/lap-trinh/lap-trinh-python-7-37",
   "https://kanadyvn.com/category/ict/programming/python/",
   "https://github.com/vtchitruong/vtchitruong.github.io",
-  "https://quantrimang.com/hoc/hon-100-bai-tap-python-co-loi-giai-code-mau-142456"
-  
+  "https://quantrimang.com/hoc/hon-100-bai-tap-python-co-loi-giai-code-mau-142456",
+  "https://mr-school.xyz/grade-10/topic-F/topic-index/",
+  "https://mr-school.xyz/grade-11/topic-F2/topic-index/",
+
 ];
 
 const allWebUrls = [...pythonGlobalUrls, ...pythonVnUrls];
