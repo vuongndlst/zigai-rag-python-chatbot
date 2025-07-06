@@ -180,12 +180,32 @@ ${docContext}
       label: `[${index + 1}]`
     }));
 
-    if (sources.length > 0 && !answer.includes("🔗 Nguồn tham khảo")) {
+    // Loại bỏ phần "🔗 Nguồn tham khảo" cũ (nếu có)
+answer = answer.replace(/\n*---\n\*\*🔗 Nguồn tham khảo:\*\*[\s\S]*$/g, "");
+
+if (sources.length > 0) {
   const sourceText =
     "\n\n---\n**🔗 Nguồn tham khảo:**  \n" +
-    sources.map((s) => `${s.label} ${s.source}`).join("  \n");
+    sources
+      .map((s) => {
+        const normalizedSource = s.source.replace(/\\/g, "/");
+        const isPdf = normalizedSource.toLowerCase().endsWith(".pdf");
+        const link = isPdf
+          ? `https://github.com/vuongndlst/zigai-rag-python-chatbot/blob/main/${encodeURIComponent(normalizedSource)}`
+          : normalizedSource.startsWith("http")
+          ? normalizedSource
+          : null;
+
+        // Nếu không có link hợp lệ, chỉ hiển thị tên
+        if (!link) return `${s.label} ${normalizedSource}`;
+
+        return `${s.label} [${normalizedSource}](${link})`;
+      })
+      .join("  \n");
+
   answer += sourceText;
 }
+
 
     await appendMessage(chatId, userId, "assistant", answer);
     return NextResponse.json({ answer, chatId, sources });

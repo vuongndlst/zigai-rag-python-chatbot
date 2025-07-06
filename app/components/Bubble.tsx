@@ -95,24 +95,40 @@ export default function Bubble({ message }: Props) {
         ) : (
           <>
             <ReactMarkdown
-              rehypePlugins={[rehypeHighlight, rehypeRaw]}
-              remarkPlugins={[remarkGfm]}
-              components={{
-                p: ({ children }) => <p className="my-2">{children}</p>,
-                code: ({ children, className }) => {
-                  const isInline = !className;
-                  return isInline ? (
-                    <code className="font-mono text-[0.95em] px-1">{children}</code>
-                  ) : (
-                    <pre className="bg-[#1e1e1e] text-white p-4 rounded-lg overflow-x-auto text-sm leading-relaxed my-2">
-                      <code className={className}>{children}</code>
-                    </pre>
-                  );
-                },
-              }}
-            >
-              {rendered}
-            </ReactMarkdown>
+  rehypePlugins={[rehypeHighlight, rehypeRaw]}
+  remarkPlugins={[remarkGfm]}
+  components={{
+    p: ({ children }) => <p className="my-2">{children}</p>,
+
+    code: ({ children, className }) => {
+      const isInline = !className;
+      return isInline ? (
+        <code className="font-mono text-[0.95em] px-1 bg-gray-100 rounded">
+          {children}
+        </code>
+      ) : (
+        <pre className="bg-[#1e1e1e] text-white p-4 rounded-lg overflow-x-auto text-sm leading-relaxed my-2">
+          <code className={className}>{children}</code>
+        </pre>
+      );
+    },
+
+    a: ({ href, children }) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 underline hover:text-blue-800"
+      >
+        {children}
+      </a>
+    ),
+  }}
+>
+  {rendered}
+</ReactMarkdown>
+
+
 
             {/* Footnotes */}
             {sources.length > 0 && (
