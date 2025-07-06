@@ -23,15 +23,16 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 border-r bg-background/90 backdrop-blur-sm flex flex-col">
-      <div className="p-3 border-b flex items-center justify-between">
+    <aside className="w-64 border-r bg-background/90 backdrop-blur-sm flex flex-col max-h-screen overflow-hidden">
+      <div className="p-3 border-b flex items-center justify-between shrink-0">
         <span className="font-semibold text-sm">Chats</span>
         <Button size="icon" variant="secondary" onClick={newChat}>
           <Plus size={18} />
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* Scrollable area for chat list */}
+      <div className="grow overflow-y-auto px-1">
         {isLoading && (
           <div className="p-4 space-y-2">
             <Skeleton className="h-6" />
@@ -39,18 +40,20 @@ export default function Sidebar() {
           </div>
         )}
 
-        {chats.map((c: any) => (
-          <button
-            key={c._id}
-            onClick={() => router.push(`/?c=${c._id}`)}
-            className={`w-full text-left px-4 py-2 hover:bg-muted ${
-              active === c._id ? "bg-muted font-medium" : ""
-            }`}
-          >
-            {c.title || "Untitled"}
-          </button>
-        ))}
-      </ScrollArea>
+        <div className="space-y-1 pb-4">
+          {chats.map((c: any) => (
+            <button
+              key={c._id}
+              onClick={() => router.push(`/?c=${c._id}`)}
+              className={`w-full text-left px-4 py-2 rounded hover:bg-muted transition-all duration-150 ${
+                active === c._id ? "bg-muted font-medium" : ""
+              }`}
+            >
+              {c.title || "Untitled"}
+            </button>
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }

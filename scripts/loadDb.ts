@@ -46,7 +46,7 @@ const pythonGlobalUrls: string[] = [
   "https://www.learnpython.org/",
   "https://www.codecademy.com/learn/learn-python-3",
   "https://www.w3schools.com/python/",
-  "https://realpython.com/python-beginners-guide/",
+  "https://realpython.com/search?kind=article&kind=course&order=newest",
   "https://realpython.com/",
   "https://docs.python-guide.org/",
   "https://towardsdatascience.com/tagged/python"
@@ -54,13 +54,15 @@ const pythonGlobalUrls: string[] = [
 
 /** Nguồn tiếng Việt phổ biến với học sinh THPT */
 const pythonVnUrls: string[] = [
-  "https://codelearn.io/learning/python",
+  "https://codelearn.io/learning/python-cho-nguoi-moi-bat-dau",
   "https://viblo.asia/tags/python",
   "https://toidicodedao.com/category/python/",
   "https://techmaster.vn/posts?keyword=python",
-  "https://gitiho.com/blog/python",
-  "https://vncoding.net/category/python",
-  "https://howkteam.vn/course/k-team-python",
+  "https://howkteam.vn/learn/lap-trinh/lap-trinh-python-7-37",
+  "https://kanadyvn.com/category/ict/programming/python/",
+  "https://github.com/vtchitruong/vtchitruong.github.io",
+  "https://quantrimang.com/hoc/hon-100-bai-tap-python-co-loi-giai-code-mau-142456"
+  
 ];
 
 const allWebUrls = [...pythonGlobalUrls, ...pythonVnUrls];
