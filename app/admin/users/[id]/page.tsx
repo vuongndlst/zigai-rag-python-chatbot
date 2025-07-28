@@ -1,87 +1,104 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Card } from '@/components/ui/card';
+import { useParams, useRouter } from 'next/navigation';
+import useSWR from 'swr';
+import { Loader, MessageSquare, User as UserIcon, Hash, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import Bubble from '@/app/components/Bubble'; // Đảm bảo đường dẫn này đúng
 
-export default function UserDetailsPage() {
-  const { id } = useParams();
-  const [user, setUser] = useState<any>(null);
-  const [chats, setChats] = useState<any[]>([]);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userRes = await fetch(`/api/admin/users/${id}`);
-        if (!userRes.ok) throw new Error('Failed to load user data.');
-        const userData = await userRes.json();
+export default function UserDetailPage() {
+    const params = useParams();
+    const router = useRouter();
+    const id = params.id as string;
 
-        const chatRes = await fetch(`/api/admin/user-chats/${id}`);
-        if (!chatRes.ok) throw new Error('Failed to load chat history.');
-        const chatData = await chatRes.json();
+    const { data, error } = useSWR(id ? `/api/admin/users/${id}` : null, fetcher);
 
-        setUser(userData);
-        setChats(chatData);
-      } catch (err: any) {
-        setError(err.message || 'Unexpected error');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (error) return <p className="text-red-500">Failed to load user details.</p>;
+    if (!data) return <div className="flex justify-center items-center p-10"><Loader className="h-8 w-8 animate-spin" /></div>;
 
-    if (id) fetchData();
-  }, [id]);
+    const { user, chats, tokenStats } = data;
 
-  if (loading) return <p className="p-4">Loading...</p>;
-  if (error) return <p className="p-4 text-red-500">{error}</p>;
-  if (!user) return <p className="p-4 text-red-500">User not found.</p>;
+    return (
+        <div className="space-y-6">
+            <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+            </Button>
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">User Details</h1>
-
-      <Card className="p-4 space-y-2">
-        <p><strong>Username:</strong> {user.username}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Role:</strong> {user.role}</p>
-        <p><strong>Status:</strong> {user.isActive ? 'Active' : 'Inactive'}</p>
-        <p><strong>Created at:</strong> {new Date(user.createdAt).toLocaleString()}</p>
-      </Card>
-
-      <h2 className="text-xl font-semibold">Chat History</h2>
-      {chats.length === 0 ? (
-        <p>No chat history found.</p>
-      ) : (
-        <ul className="space-y-3">
-          {chats.map(chat => (
-            <Card
-              key={chat._id}
-              className="p-3 text-sm cursor-pointer hover:bg-gray-50"
-              onClick={() =>
-                setSelectedChatId(prev => (prev === chat._id ? null : chat._id))
-              }
-            >
-              <p><strong>Time:</strong> {new Date(chat.createdAt).toLocaleString()}</p>
-              <p><strong>Prompt:</strong> {chat.messages?.[0]?.content || 'N/A'}</p>
-              <p><strong>Response:</strong> {chat.messages?.[1]?.content || 'N/A'}</p>
-
-              {selectedChatId === chat._id && (
-                <div className="mt-2 border-t pt-2 space-y-1">
-                  <p className="font-semibold text-gray-700">Full Conversation:</p>
-                  {chat.messages.map((m: any, idx: number) => (
-                    <p key={idx}>
-                      <strong>{m.role}:</strong> {m.content}
-                    </p>
-                  ))}
-                </div>
-              )}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                        <UserIcon />
+                        {user.username}
+                    </CardTitle>
+                    <CardDescription>{user.email}</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <h4 className="font-semibold text-sm">Vai trò</h4>
+                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">Trạng thái</h4>
+                        <Badge variant={user.isActive ? 'outline' : 'destructive'}>{user.isActive ? 'Hoạt động' : 'Vô hiệu'}</Badge>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">Ngày tạo</h4>
+                        <p>{new Date(user.createdAt).toLocaleDateString('vi-VN')}</p>
+                    </div>
+                </CardContent>
             </Card>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><Hash /> Thống kê sử dụng</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <h4 className="font-semibold text-sm">Tổng số đoạn chat</h4>
+                        <p className="text-2xl font-bold">{chats.length}</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">Tổng số token</h4>
+                        <p className="text-2xl font-bold">{tokenStats.totalTokens.toLocaleString('vi-VN')}</p>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold text-sm">Chi tiết</h4>
+                        <p className="text-xs text-muted-foreground">Prompt: {tokenStats.totalPromptTokens.toLocaleString('vi-VN')}</p>
+                        <p className="text-xs text-muted-foreground">Completion: {tokenStats.totalCompletionTokens.toLocaleString('vi-VN')}</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><MessageSquare /> Lịch sử trò chuyện</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {chats.length > 0 ? (
+                        <Accordion type="single" collapsible className="w-full">
+                            {chats.map((chat: any) => (
+                                <AccordionItem key={chat._id} value={chat._id}>
+                                    <AccordionTrigger>{chat.title || "(Không có tiêu đề)"}</AccordionTrigger>
+                                    <AccordionContent className="p-2 bg-muted/50 rounded-md">
+                                        <div className="max-h-96 overflow-y-auto pr-2">
+                                            {chat.messages.map((message: any, index: number) => (
+                                                <Bubble key={index} message={message} />
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <p className="text-center text-muted-foreground">Người dùng này chưa có đoạn chat nào.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

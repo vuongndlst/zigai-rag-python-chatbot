@@ -3,7 +3,7 @@ import "./globals.css";
 import Providers from "./providers";      // Import Providers component
 
 export const metadata = {
-  title: "ZigAI – trợ lý dạy Python cho học sinh THPT tại Việt Nam",
+  title: "ZigAI – trợ lý dạy Python cho học sinh lớp 10 tại Việt Nam",
 };
 
 export default function RootLayout({

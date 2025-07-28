@@ -1,216 +1,223 @@
-// app/api/chat/route.ts
+/* --------------------------------------------------------------------------
+   app/api/chat/route.ts · ZigAI – Python 10 KNTT (Bài 16 → 32)
+   Version: v7.4 - Added User Query Logging
+   -------------------------------------------------------------------------- */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
 import OpenAI from "openai";
-import { DataAPIClient } from "@datastax/astra-db-ts";
-import {
-  createChat,
-  appendMessage,
-  updateChatTitle,
-} from "@/lib/chatService";
+import { LlamaCloudIndex, NodeWithScore } from "llamaindex";
+import { createChat, appendMessage, updateChatTitle } from "@/lib/chatService";
+import { ModerationItem } from "@/models/ModerationItem";
+import { CacheHit } from "@/models/CacheHit";
+import { UserQuery } from "@/models/UserQuery";
+import { dbConnect } from "@/lib/mongodb";
 
-export const runtime = "nodejs";
-
+/* ------------------------------------------------------------------ */
+/* 1. CONFIGURATION & ENVIRONMENT VARIABLES                           */
+/* ------------------------------------------------------------------ */
 const {
-  OPENAI_API_KEY,
-  OPENAI_CHAT_MODEL = "gpt-4o-mini",
-  OPENAI_FALLBACK_MODEL = "gpt-4o",
-  ASTRA_DB_API_ENDPOINT,
-  ASTRA_DB_APPLICATION_TOKEN,
-  ASTRA_DB_NAMESPACE,
-  ASTRA_DB_COLLECTION,
-  EMBEDDING_MODEL = "text-embedding-3-small",
+  OPENAI_API_KEY,
+  EMBEDDING_MODEL = "text-embedding-3-small",
+  OPENAI_CHAT_MODEL = "gpt-4o",
+  OPENAI_FALLBACK_MODEL = "gpt-4o-mini",
+  LLAMA_CLOUD_API_KEY,
+  LLAMA_CLOUD_INDEX_NAME = "python 10", 
+  LLAMA_CLOUD_PROJECT_NAME = "zigai",
+  LLAMA_CLOUD_ORGANIZATION_ID,
 } = process.env;
 
-if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
-if (!ASTRA_DB_API_ENDPOINT) throw new Error("ASTRA_DB_API_ENDPOINT missing");
+if (!OPENAI_API_KEY || !LLAMA_CLOUD_API_KEY || !LLAMA_CLOUD_INDEX_NAME || !LLAMA_CLOUD_PROJECT_NAME || !LLAMA_CLOUD_ORGANIZATION_ID) {
+    throw new Error("Missing critical environment variables.");
+}
 
+const SIMILARITY_TOP_K = 8;
+const CACHE_SIMILARITY_THRESHOLD = 0.9;
+
+/* ------------------------------------------------------------------ */
+/* 2. API CLIENTS INITIALIZATION                                      */
+/* ------------------------------------------------------------------ */
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-const astra = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN!);
-const vectorColl = astra
-  .db(ASTRA_DB_API_ENDPOINT!, { namespace: ASTRA_DB_NAMESPACE })
-  .collection(ASTRA_DB_COLLECTION!);
+const llamaCloudIndex = new LlamaCloudIndex({
+  name: LLAMA_CLOUD_INDEX_NAME,
+  projectName: LLAMA_CLOUD_PROJECT_NAME,
+  organizationId: LLAMA_CLOUD_ORGANIZATION_ID,
+  apiKey: LLAMA_CLOUD_API_KEY,
+});
+console.log(`✅ Connected to LlamaCloud index: ${LLAMA_CLOUD_INDEX_NAME}`);
 
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/* ------------------------------------------------------------------ */
+/* 3. HELPER FUNCTIONS                                                */
+/* ------------------------------------------------------------------ */
+async function getChatCompletion(messages: any[], model = OPENAI_CHAT_MODEL): Promise<{ answer: string; usage: { prompt_tokens: number; completion_tokens: number; } | null }> {
+    try { const completion = await openai.chat.completions.create({ model, messages, max_tokens: 4096, temperature: 0.4, }); if (completion.usage) { console.log("✅ TOKEN USAGE:", { prompt_tokens: completion.usage.prompt_tokens, completion_tokens: completion.usage.completion_tokens, total_tokens: completion.usage.total_tokens, model }); } const answer = completion.choices[0]?.message?.content ?? "(Không có câu trả lời)"; return { answer, usage: completion.usage ? { prompt_tokens: completion.usage.prompt_tokens, completion_tokens: completion.usage.completion_tokens, } : null }; } catch (error: any) { console.warn(`⚠️ OpenAI API call with model ${model} failed: ${error.message}. Falling back...`); if (model !== OPENAI_FALLBACK_MODEL) { return getChatCompletion(messages, OPENAI_FALLBACK_MODEL); } return { answer: "Xin lỗi, đã có lỗi xảy ra khi kết nối đến trợ lý AI. Vui lòng thử lại sau.", usage: null }; }
+}
+const forbiddenKeywords = ["deepfake", "chính trị", "game", "tán gẫu", "giải trí", "hacking", "an ninh mạng"];
+const cheatingKeywords = ["giải hộ", "làm giùm", "copy bài", "chép lời giải", "đáp án là gì"];
+const contains = (text: string, keywords: string[]) => keywords.some(kw => new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text));
+async function translateToVietnamese(text: string): Promise<string> {
+    const vietnameseChars = /[àáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳýỵỷỹ]/; if (vietnameseChars.test(text)) { console.log("ℹ️ Query appears to be Vietnamese, skipping translation."); return text; } try { console.log(`TRANSLATING: "${text}" to Vietnamese.`); const completion = await openai.chat.completions.create({ model: "gpt-4o-mini", messages: [{ role: "system", content: "You are an expert translator. Translate the user's query into natural-sounding Vietnamese. Return only the translated text." }, { role: "user", content: text }], temperature: 0.1, max_tokens: 300, }); const translatedText = completion.choices[0]?.message?.content?.trim() || text; console.log(`TRANSLATED: to "${translatedText}"`); return translatedText; } catch (error) { console.error("❌ Translation to Vietnamese failed:", error); return text; }
 }
 
-function containsKeywordExact(text: string, keywords: string[]): boolean {
-  return keywords.some((kw) => {
-    const escaped = escapeRegExp(kw);
-    const regex = new RegExp(`\\b${escaped}\\b`, "i");
-    return regex.test(text);
-  });
-}
-
-function isTooLong(message: string): boolean {
-  return message.length > 2000;
-}
-
-function isOffTopic(message: string): boolean {
-  const forbiddenKeywords = ["deepfake", "chính trị", "game", "tán gẫu", "giải trí", "hacking", "an ninh mạng"];
-  return containsKeywordExact(message.toLowerCase(), forbiddenKeywords);
-}
-
-function isCheatingPrompt(message: string): boolean {
-  const cheatHints = ["giải hộ", "làm giùm", "copy bài", "chép lời giải", "đáp án là gì"];
-  return cheatHints.some(h => message.toLowerCase().includes(h));
-}
-
-async function createEmbedding(text: string) {
-  const { data } = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: text,
-    encoding_format: "float",
-  });
-  return data[0].embedding;
-}
-
-async function runChat(model: string, messages: any[]) {
-  return openai.chat.completions.create({
-    model,
-    messages,
-    stream: false,
-    max_tokens: 4096,
-  });
-}
+/* ------------------------------------------------------------------ */
+/* 4. API ROUTE HANDLER (POST)                                        */
+/* ------------------------------------------------------------------ */
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = session.user.id;
+  try {
+    // --- 1. Authentication and Input Validation ---
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+    const { messages, chatId: existingChatId } = await req.json();
+    const latestMessage: string = messages.at(-1)?.content ?? "";
 
-    const { messages, chatId: incomingId } = await req.json();
-    if (!Array.isArray(messages) || messages.length === 0)
-      return NextResponse.json({ error: "messages array required" }, { status: 400 });
+    if (!latestMessage) { return NextResponse.json({ answer: "Câu hỏi không được để trống.", chatId: null, sources: [] }); }
+    if (latestMessage.length > 3000) { return NextResponse.json({ answer: "Câu hỏi quá dài, vui lòng chia nhỏ.", chatId: null, sources: [] }); }
+    if (contains(latestMessage, forbiddenKeywords)) { return NextResponse.json({ answer: "Xin lỗi, chủ đề này ngoài phạm vi hỗ trợ của ZigAI.", chatId: null, sources: [] }); }
+    if (contains(latestMessage, cheatingKeywords)) { return NextResponse.json({ answer: "Hãy tự suy nghĩ! ZigAI chỉ gợi ý và giảng giải, không làm bài hộ.", chatId: null, sources: [] }); }
 
-    const latest = messages.at(-1).content as string;
+    // --- 2. Dịch và Tạo Embedding cho câu hỏi ---
+    const translatedQuery = await translateToVietnamese(latestMessage);
+    await dbConnect();
+    const queryEmbedding = await openai.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: translatedQuery, 
+    }).then(res => res.data[0].embedding);
 
-    if (isTooLong(latest)) {
-      return NextResponse.json({ answer: "Câu hỏi quá dài, vui lòng chia nhỏ nội dung.", chatId: null, sources: [] });
-    }
+    // --- 3. Ghi nhận câu hỏi của người dùng ---
+    await UserQuery.create({
+        prompt: latestMessage,
+        promptEmbedding: queryEmbedding,
+        userId: userId,
+        chatId: existingChatId,
+    });
 
-    if (isOffTopic(latest)) {
-      return NextResponse.json({ answer: "Xin lỗi, ZigAI chỉ hỗ trợ Python THPT.", chatId: null, sources: [] });
-    }
+    // --- 4. KIỂM TRA CACHE TRONG KNOWLEDGE BASE ---
+    console.log("🔎 Đang tìm kiếm trong Knowledge Base Cache...");
+    const cachedResults = await ModerationItem.aggregate([
+        {
+            "$vectorSearch": {
+                "index": "prompt_embedding_index",
+                "path": "promptEmbedding",
+                "queryVector": queryEmbedding,
+                "numCandidates": 1,
+                "limit": 1
+            }
+        },
+        { "$match": { "status": "approved" } },
+        { "$project": { "_id": 1, "response": 1, "score": { "$meta": "vectorSearchScore" } } }
+    ]);
 
-    if (isCheatingPrompt(latest)) {
-      return NextResponse.json({ answer: "ZigAI khuyến khích tự suy nghĩ. Mình có thể gợi ý cách tiếp cận.", chatId: null, sources: [] });
-    }
+    if (cachedResults.length > 0 && cachedResults[0].score > CACHE_SIMILARITY_THRESHOLD) {
+        console.log(`✅ Cache hit! (Score: ${cachedResults[0].score})`);
+        const cachedAnswer = cachedResults[0].response;
 
-    let chatId = incomingId;
-    if (!chatId) {
-      const chat = await createChat(userId);
-      chatId = chat._id.toString();
-      const title = latest.length > 30 ? latest.slice(0, 30).trimEnd() + "…" : latest;
-      await updateChatTitle(chatId, userId, title);
-    }
+        let chatId = existingChatId;
+        if (!chatId) {
+            const newChat = await createChat(userId);
+            chatId = newChat._id.toString();
+            const title = latestMessage.slice(0, 40) + (latestMessage.length > 40 ? "…" : "");
+            await updateChatTitle(chatId, userId, title);
+        }
+        await appendMessage(chatId, userId, "user", latestMessage);
+        await appendMessage(chatId, userId, "assistant", cachedAnswer);
 
-    await appendMessage(chatId, userId, "user", latest);
+        await CacheHit.create({
+            prompt: latestMessage,
+            cachedItemId: cachedResults[0]._id,
+            userId: userId,
+            chatId: chatId,
+        });
 
-    let docContext = "";
-    let topChunks: any[] = [];
-    try {
-      const emb = await createEmbedding(latest);
-      const docs = await vectorColl
-        .find(null, {
-          sort: { $vector: emb },
-          limit: 12,
-          includeSimilarity: true,
-        })
-        .toArray();
+        return NextResponse.json({ answer: cachedAnswer, chatId, sources: [] });
+    }
 
-      const uniqueSources = new Map<string, any>();
-      for (const d of docs) {
-        if (!uniqueSources.has(d.source)) {
-          uniqueSources.set(d.source, {
-            id: String(d._id),
-            text: d.text,
-            source: d.source,
-            score: d?.$similarity ?? 0,
-          });
-        }
-      }
-      topChunks = Array.from(uniqueSources.values())
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8);
-
-      docContext = topChunks.map((d, i) => `[${i + 1}] ${d.text}`).join("\n---\n");
-    } catch (e) {
-      console.error("Vector search error:", e);
-    }
-
-    const systemMsg = {
-      role: "system" as const,
-      content: `
-Bạn là **ZigAI** – trợ lý dạy Python cho học sinh **THPT Việt Nam**.
-
-🎯 Mỗi câu trả lời cần:
-1. **Giải thích khái niệm** dễ hiểu, ví dụ gần gũi, tránh jargon.
-2. **Code Python** ngắn (≤ 20 dòng), có chú thích tiếng Việt.
-3. **Tóm tắt nhanh** (≤ 3 câu).
-4. **Bài tập luyện tập**: 1 cơ bản + 1 vận dụng. **Không giải bài**, chỉ gợi ý cách làm.
-5. **Câu hỏi tự kiểm tra** (Yes/No hoặc multiple choice A/B/C/D).
-
-📌 Định dạng Markdown. Code đặt trong \`\`\`python. KHÔNG chèn hình ảnh.
-🔒 Không trả lời các chủ đề ngoài Python THPT ở Việt Nam. Không giúp làm bài hộ.
---- NGUỒN
-${docContext}
----`
-    };
-
-    let chatRes;
-    try {
-      chatRes = await runChat(OPENAI_CHAT_MODEL, [systemMsg, ...messages]);
-    } catch (err) {
-      console.warn("Model error – fallback:", err);
-      chatRes = await runChat(OPENAI_FALLBACK_MODEL, [systemMsg, ...messages]);
-    }
-
-    let answer = chatRes.choices[0]?.message?.content ?? "(Không có câu trả lời)";
-
-    const sources = topChunks.map((chunk, index) => ({
-      id: chunk.id,
-      source: chunk.source,
-      snippet: chunk.text.slice(0, 160) + "…",
-      label: `[${index + 1}]`
-    }));
-
-    // Loại bỏ phần "🔗 Nguồn tham khảo" cũ (nếu có)
-answer = answer.replace(/\n*---\n\*\*🔗 Nguồn tham khảo:\*\*[\s\S]*$/g, "");
-
-if (sources.length > 0) {
-  const sourceText =
-    "\n\n---\n**🔗 Nguồn tham khảo:**  \n" +
-    sources
-      .map((s) => {
-        const normalizedSource = s.source.replace(/\\/g, "/");
-        const isPdf = normalizedSource.toLowerCase().endsWith(".pdf");
-        const link = isPdf
-          ? `https://github.com/vuongndlst/zigai-rag-python-chatbot/blob/main/${encodeURIComponent(normalizedSource)}`
-          : normalizedSource.startsWith("http")
-          ? normalizedSource
-          : null;
-
-        // Nếu không có link hợp lệ, chỉ hiển thị tên
-        if (!link) return `${s.label} ${normalizedSource}`;
-
-        return `${s.label} [${normalizedSource}](${link})`;
-      })
-      .join("  \n");
-
-  answer += sourceText;
-}
+    console.log("ℹ️ Cache miss. Tiếp tục với RAG pipeline...");
+    // --- KẾT THÚC KIỂM TRA CACHE ---
 
 
-    await appendMessage(chatId, userId, "assistant", answer);
-    return NextResponse.json({ answer, chatId, sources });
-  } catch (err) {
-    console.error("Chat route error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+    // --- 5. RAG PIPELINE (nếu cache miss) ---
+    let chatId = existingChatId;
+    if (!chatId) {
+      const newChat = await createChat(userId);
+      chatId = newChat._id.toString();
+      const title = latestMessage.slice(0, 40) + (latestMessage.length > 40 ? "…" : "");
+      await updateChatTitle(chatId, userId, title);
+    }
+    await appendMessage(chatId, userId, "user", latestMessage);
+
+    const retriever = llamaCloudIndex.asRetriever({ similarityTopK: SIMILARITY_TOP_K });
+    const retrievedNodes: NodeWithScore[] = await retriever.retrieve(translatedQuery);
+    const context = retrievedNodes.length > 0
+      ? retrievedNodes.map(node => `<document>\n${node.node.text}\n</document>`).join("\n\n")
+      : "(Không có tài liệu tham khảo nào phù hợp.)";
+
+    // --- 6. RAG: Generation (với prompt đã được cải tiến) ---
+    const systemPrompt = {
+      role: "system" as const,
+      content: `Bạn là **ZigAI**, một trợ giảng AI chuyên gia về lập trình Python dành cho học sinh Lớp 10, với kiến thức chuyên sâu từ Sách giáo khoa Kết Nối Tri Thức (từ Bài 16 đến 32). Phong cách của bạn là thân thiện, kiên nhẫn và luôn khuyến khích học sinh tự suy nghĩ.
+
+**QUY TẮC VÀNG (BẮT BUỘC TUÂN THỦ):**
+1.  **CHỈ DÙNG KIẾN THỨC ĐƯỢC CUNG CẤP:** Toàn bộ câu trả lời của bạn PHẢI dựa trên thông tin có trong các thẻ \`<document>\` dưới đây. Đây là nguồn kiến thức duy nhất và tối thượng của bạn.
+2.  **KHÔNG SUY DIỄN:** Tuyệt đối không được bịa đặt thông tin hoặc sử dụng kiến thức bên ngoài không có trong thẻ \`<document>\`. Nếu thông tin không có, hãy trả lời theo quy tắc số 4.
+3.  **KHÔNG GIẢI BÀI TẬP:** Tuyệt đối không đưa ra lời giải trực tiếp cho các bài tập cụ thể trong sách. Thay vào đó, hãy giảng giải kiến thức liên quan và hướng dẫn học sinh cách tự giải quyết vấn đề.
+
+---
+**NGUỒN KIẾN THỨC:**
+<context>
+${context}
+</context>
+---
+
+**QUY TRÌNH TRẢ LỜI:**
+
+1.  **PHÂN TÍCH YÊU CẦU:** Đọc thật kỹ câu hỏi của học sinh (luôn bằng Tiếng Việt và bắt đầu bằng từ để hỏi) để hiểu rõ họ đang muốn hỏi gì.
+2.  **ĐỐI CHIẾU TÀI LIỆU:** Cẩn thận rà soát TOÀN BỘ nội dung trong các thẻ \`<document>\` để tìm kiếm thông tin liên quan.
+3.  **TỔNG HỢP VÀ GIẢNG GIẢI (Nếu có thông tin):**
+    * Sử dụng ngôn ngữ Tiếng Việt tự nhiên, dễ hiểu.
+    * Trình bày câu trả lời theo cấu trúc sư phạm sau để giúp học sinh hiểu sâu nhất:
+        * **Giải thích:** Giảng giải khái niệm một cách rõ ràng, logic, và đi thẳng vào vấn đề.
+        * **Ví dụ Code:** Nếu phù hợp, hãy cung cấp một đoạn code Python ngắn gọn, sạch sẽ, và có chú thích rõ ràng để minh họa cho kiến thức chung, không phải cho bài tập cụ thể.
+        * **Tóm tắt:** Chốt lại những điểm chính cần nhớ.
+        * **Luyện tập:** Đưa ra một hoặc hai câu hỏi/bài tập nhỏ để học sinh có thể tự thực hành và củng cố kiến thức.
+    * Luôn sử dụng định dạng Markdown để câu trả lời dễ đọc (in đậm, danh sách, khối code...).
+    * **Quan trọng:** Cuối mỗi câu trả lời, hãy thêm một phần **"Gợi ý câu hỏi tiếp theo:"** để khuyến khích học sinh đào sâu kiến thức. Ví dụ: "Bạn có muốn tìm hiểu thêm về cách các kiểu dữ liệu khác nhau ảnh hưởng đến vòng lặp không?".
+
+4.  **TRẢ LỜI KHI KHÔNG CÓ THÔNG TIN:**
+    * Nếu sau khi đã tìm kiếm kỹ lưỡng mà không thấy thông tin trong tài liệu, hãy trả lời một cách thân thiện và duy nhất một câu: **"Xin lỗi, mình không tìm thấy thông tin về chủ đề này trong sách giáo khoa."**
+
+5.  **TRƯỜNG HỢP ĐẶC BIỆT:**
+    * Nếu học sinh hỏi về "mục lục", hãy liệt kê danh sách các bài từ 16 đến 32.`
+    };
+
+    const messagesForLLM = [...messages.slice(0, -1), { role: "user", content: translatedQuery }];
+    const messagesForApi = [systemPrompt, ...messagesForLLM.slice(-10)];
+    const { answer, usage } = await getChatCompletion(messagesForApi);
+
+    await appendMessage(chatId, userId, "assistant", answer, usage || undefined);
+
+    await ModerationItem.create({
+        prompt: latestMessage,
+        response: answer,
+        chatId: chatId,
+        userId: userId,
+        status: 'pending'
+    });
+
+    const sources = retrievedNodes.map(node => ({
+        id: node.node.id_, 
+        source: (node.node.metadata as any)?.type || 'Tài liệu', 
+        snippet: (node.node.text || "").slice(0, 200) + "…", 
+    }));
+
+    return NextResponse.json({ answer, chatId, sources });
+
+  } catch (err: any) {
+    console.error("❌ Critical error in chat route:", err);
+    return NextResponse.json({ error: "Internal Server Error", details: err.message }, { status: 500 });
+  }
 }

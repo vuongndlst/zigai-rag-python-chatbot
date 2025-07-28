@@ -1,0 +1,139 @@
+#,ID,File Name,Page,Text,Full Metadata
+1,68440191-1908-436f-8491-ebc2c8758ab2,bai 24.pdf,1,"# BÀI 24: XÂU KÍ TỰ
+
+SAU BÀI NÀY EM SẼ
+
+- Hiểu được xâu kí tự là kiểu dữ liệu cơ bản của Python.
+- Biết và thực hiện được lệnh for để xử lí xâu kí tự.
+
+# KHỞI ĐỘNG
+
+Em đã biết dữ liệu xâu kí tự (gọi tắt là xâu) và cách tạo ra chúng. Ví dụ:
+
+Python
+>>> s = ""Thời khoá biểu""
+>>> xau = 'Hoa học trò'
+>>> cau_tho = """"""Mình về mình có nhớ ta
+... Mười lăm năm ấy thiết tha mặn nồng""""""
+
+Liệu có lệnh nào để trích ra từng kí tự của một xâu, hay đếm số kí tự của một xâu không?
+
+# 1. XÂU LÀ MỘT DÃY CÁC KÍ TỰ
+
+# Hoạt động 1: Tìm hiểu cấu trúc của xâu kí tự
+
+Một xâu kí tự được hiểu là một dãy các kí tự. Tương tự như danh sách, ta có thể làm việc với từng kí tự của xâu.
+
+# Ví dụ 1: Truy cập kí tự và lấy độ dài xâu.
+
+Giống như danh sách, ta có thể dùng chỉ số (index) để truy cập từng kí tự và dùng lệnh len() để lấy độ dài. Chỉ số cũng bắt đầu từ 0.","{""file_size"":150810,""last_modified_at"":""2025-07-10T23:45:43"",""file_path"":""bai 24.pdf"",""file_name"":""bai 24.pdf"",""external_file_id"":""bai 24.pdf"",""file_id"":""34adcfa0-18c5-4f4f-926c-eb517e8aef64"",""pipeline_file_id"":""00d07461-8594-47b7-a811-b58369065456"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":1,""start_page_index"":0,""start_page_label"":1,""end_page_index"":0,""end_page_label"":1,""document_id"":""203cf3560378bac3469561900b079ba151c8e28dc545812a22"",""start_char_idx"":1,""end_char_idx"":842}"
+2,941626d1-1b14-487b-8d3c-64e351e29d53,bai 24.pdf,2,"# Python
+
+>>> s = ""abc""
+>>> s[0] = ""A"" # Lệnh này sẽ gây ra lỗi!
+Traceback (most recent call last):
+...
+TypeError: 'str' object does not support item assignment
+
+Lỗi TypeError cho biết đối tượng xâu không hỗ trợ việc gán lại giá trị cho từng mục.
+
+# GHI NHỚ
+
+- Xâu kí tự trong Python là một dãy các kí tự.
+- Ta có thể truy cập từng kí tự của xâu qua chỉ số, bắt đầu từ 0 đến len() - 1.
+- Xâu có tính bất biến (immutable), nghĩa là không thể thay đổi giá trị của từng kí tự sau khi đã tạo ra xâu.
+- Python không có kiểu dữ liệu kí tự riêng; một kí tự chính là một xâu có độ dài bằng 1.
+
+# 2. LỆNH DUYỆT KÍ TỰ CỦA XÂU
+
+# Hoạt động 2: Tìm hiểu lệnh duyệt từng kí tự của xâu
+
+Ta có thể duyệt qua tất cả các kí tự của một xâu bằng lệnh for theo hai cách.","{""file_size"":150810,""last_modified_at"":""2025-07-10T23:45:43"",""file_path"":""bai 24.pdf"",""file_name"":""bai 24.pdf"",""external_file_id"":""bai 24.pdf"",""file_id"":""34adcfa0-18c5-4f4f-926c-eb517e8aef64"",""pipeline_file_id"":""00d07461-8594-47b7-a811-b58369065456"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":2,""start_page_index"":1,""start_page_label"":2,""end_page_index"":1,""end_page_label"":2,""document_id"":""203cf3560378bac3469561900b079ba151c8e28dc545812a22"",""start_char_idx"":2861,""end_char_idx"":3609}"
+3,20dd6ccc-7436-49b9-b023-9caf157fa699,SGK Tin 10 - KTTT - Python.pdf,35,"Python không cho phép thay đổi từng ký tự của một xâu: Điều này khác với danh sách. Python không có kiểu dữ liệu ký tự. Ký tự chính là xâu có độ dài 1. Xâu rỗng được định nghĩa như sau:
+
+empty
+
+Xâu ký tự trong Python là dãy các ký tự Unicode. Xâu có thể được coi là không thay đổi từng ký tự của xâu: Truy cập danh sách các ký tự nhưng từng ký tự của xâu qua chỉ số, chỉ số từ 0 đến độ dài len() - 1.
+
+# 1. Các xâu ký tự sau có hợp lệ không?
+
+- a) ""123&#x26;*( )+-ABC""
+- b) 101011080101001
+- c) ""Tây Nguyên""
+- d) 11111111  256
+
+# 2. Mỗi xâu hợp lệ &#x26; có độ dài bằng bao nhiêu?
+
+# LENH DUYET KI TU CUA XAU
+
+# Hoạt động 2: Tìm hiểu lệnh duyệt từng ký tự của xâu
+
+Quan sát các lệnh sau để biết cách duyệt từng ký tự của xâu ký tự. Lệnh for có hai cách duyệt, theo chỉ số và theo phần tử của xâu ký tự.","{""file_size"":11904194,""last_modified_at"":""2025-07-10T05:55:07"",""file_path"":""SGK Tin 10 - KTTT - Python.pdf"",""file_name"":""SGK Tin 10 - KTTT - Python.pdf"",""external_file_id"":""SGK Tin 10 - KTTT - Python.pdf"",""file_id"":""3a7d0af5-0ec3-4587-b1a9-2bffb956baae"",""pipeline_file_id"":""1cd48320-8a7e-45b1-a135-baee18e8e7a8"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":35,""start_page_index"":34,""start_page_label"":35,""end_page_index"":34,""end_page_label"":35,""document_id"":""f4506e88647cd3d876a08dae041508e7e3bc110f416984a1e5"",""start_char_idx"":113059,""end_char_idx"":113860}"
+4,e7af135b-85cb-4c2e-b487-89289ebbed6b,SGK Tin 10 - KTTT - Python.pdf,35,"Lệnh for có hai cách duyệt, theo chỉ số và theo phần tử của xâu ký tự.
+
+>>> s = 'Thời khóa biểu'
+>>> for i in range(len(s)):
+print(s[i], end=' ')
+
+Duyệt theo ký tự của xâu ký tự:
+
+>>> for ch in s:
+print(ch, end=' ')
+
+Cách thứ nhất: biến i lần lượt chạy theo chỉ số của xâu ký tự s, từ 0 đến len(s). Ký tự tại chỉ số i là s[i]:
+
+Cách thứ hai duyệt theo từng ký tự của xâu s. Biến ch sẽ được gán lần lượt các ký tự của xâu s từ đầu đến cuối.
+
+Chú ý: Từ khóa in, tuy trường hợp cụ thể, hoặc là toán tử logic dùng để kiểm tra một giá trị có mặt hay không trong một vùng giá trị danh sách/xâu; hoặc để chọn lần lượt từng phần tử trong một vùng giá trị danh sách/xâu.
+
+>>> 'a' in 'abcd'
+True
+>>> 'abc' in 'abcd'
+True","{""file_size"":11904194,""last_modified_at"":""2025-07-10T05:55:07"",""file_path"":""SGK Tin 10 - KTTT - Python.pdf"",""file_name"":""SGK Tin 10 - KTTT - Python.pdf"",""external_file_id"":""SGK Tin 10 - KTTT - Python.pdf"",""file_id"":""3a7d0af5-0ec3-4587-b1a9-2bffb956baae"",""pipeline_file_id"":""1cd48320-8a7e-45b1-a135-baee18e8e7a8"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":35,""start_page_index"":34,""start_page_label"":35,""end_page_index"":34,""end_page_label"":35,""document_id"":""f4506e88647cd3d876a08dae041508e7e3bc110f416984a1e5"",""start_char_idx"":113791,""end_char_idx"":114500}"
+5,6789af91-4787-4a55-a1f1-8616299417ce,bai 25.pdf,1,"# BÀI 25: MỘT SỐ LỆNH LÀM VIỆC VỚI XÂU KÍ TỰ
+
+SAU BÀI NÀY EM SẼ
+
+- Biết và thực hiện được một số lệnh thường dùng với xâu kí tự.
+
+# KHỞI ĐỘNG
+
+Bài toán tìm kiếm xâu con trong một xâu là một trong những bài toán tin học có ứng dụng nhiều trong thực tế, ví dụ như công cụ tìm kiếm trên Internet hay lệnh tìm kiếm trong soạn thảo văn bản. Cho xâu c = ""Trường Sơn"" và xâu m = ""Bước chân trên dải Trường Sơn"". Em hãy cho biết xâu c có là xâu con của xâu m không, và nếu có thì ở vị trí nào?
+
+# 1. XÂU CON VÀ LỆNH TÌM VỊ TRÍ XÂU CON
+
+# Hoạt động 1: Một số lệnh tìm kiếm xâu con trong xâu kí tự
+
+Python cung cấp các công cụ mạnh mẽ để kiểm tra và tìm kiếm xâu con.
+
+# a) Kiểm tra xâu con bằng toán tử in
+
+Toán tử in trả về True nếu một xâu là xâu con của xâu khác, ngược lại trả về False.","{""file_size"":147181,""last_modified_at"":""2025-07-10T23:45:48"",""file_path"":""bai 25.pdf"",""file_name"":""bai 25.pdf"",""external_file_id"":""bai 25.pdf"",""file_id"":""d07d021b-3b7e-4702-a0dc-6d8882248dac"",""pipeline_file_id"":""93d9d5d8-58d9-407d-8e89-fee71cc44a9b"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":1,""start_page_index"":0,""start_page_label"":1,""end_page_index"":0,""end_page_label"":1,""document_id"":""76e702cf82f5889161ea3fbe556340b7fe84964498e1dd84c6"",""start_char_idx"":1,""end_char_idx"":781}"
+6,e4fa94e6-a95f-45ce-9b07-49de8f8d05fe,bai 17.pdf,3,"Hà Nội Việt Nam
+
+# Phép nhân * (Lặp xâu): Lặp lại một xâu kí tự n lần.
+
+Python
+>>> ""Hello"" * 3
+'HelloHelloHello'
+
+# GHI NHỚ
+
+- Các phép toán trên dữ liệu kiểu số: +, -, *, /, //, %, **.
+- Các phép toán trên dữ liệu kiểu xâu: + (nối xâu) và * (lặp).
+
+# CÂU HỎI
+
+1. Mỗi lệnh sau là đúng hay sai? Nếu đúng thì cho kết quả là bao nhiêu?
+>>> (12 - 10 // 2)**2 - 1
+>>> (13 + 45**2) * (30 // 12 - 5 / 2)
+
+2. Mỗi lệnh sau cho kết quả là xâu kí tự như thế nào?
+>>> ""20"" + ""10""
+>>> ""10"" + ""0"" * 5
+
+# TỪ KHOÁ
+
+# Hoạt động 3: Phân biệt biến và từ khoá
+
+Trong Python, có một tập hợp các từ đặc biệt được gọi là từ khoá (keyword). Các từ này được dùng cho mục đích riêng của ngôn ngữ lập trình và không được dùng để đặt tên cho biến. Việc đặt tên biến trùng với từ khoá sẽ gây ra lỗi cú pháp (SyntaxError).","{""file_size"":188840,""last_modified_at"":""2025-07-10T23:44:58"",""file_path"":""bai 17.pdf"",""file_name"":""bai 17.pdf"",""external_file_id"":""bai 17.pdf"",""file_id"":""d47ed6dd-70ab-43c4-a817-9e23f4ebab58"",""pipeline_file_id"":""138c5586-04a8-4052-86a0-7541add49542"",""pipeline_id"":""0f22a7eb-76e7-435a-9bc5-48ca328c24ff"",""page_label"":3,""start_page_index"":2,""start_page_label"":3,""end_page_index"":2,""end_page_label"":3,""document_id"":""e2337d3c50443c80b946635843523a5e0166d70d1ac70ebec5"",""start_char_idx"":6032,""end_char_idx"":6823}"

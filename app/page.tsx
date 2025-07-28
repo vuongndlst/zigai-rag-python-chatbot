@@ -3,52 +3,50 @@
 import { signOut, useSession } from "next-auth/react";
 import ChatUI from "./components/ChatUI";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import logo from "@/app/assets/logo2.png";
+import Link from "next/link";
+import { LogOut } from "lucide-react";
 
 export default function ChatPage() {
-  const { data: session } = useSession();
+  // Lấy cả `session` và `status` để xử lý lỗi hydration
+  const { data: session, status } = useSession();
 
-  return (
-    <main className="min-h-screen bg-muted/50 flex flex-col">
-      {/* HEADER fixed */}
-      <header className="w-full border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Logo + brand name */}
-          <div className="flex items-center gap-2">
-            <Image
-              src={logo}
-              alt="ZigAI logo"
-              width={32}
-              height={32}
-              priority
-              className="select-none"
-            />
-            <h1 className="font-bold text-lg leading-none">
-              Zig&nbsp;<span className="text-primary">AI</span>
-            </h1>
-          </div>
+  return (
+    // Đặt padding ở đây để có khoảng trống xung quanh khối chính
+    <main className="h-screen w-screen bg-muted/40 p-4">
+      {/* Khối chính chứa cả header và chat UI */}
+      <div className="w-full h-full max-w-7xl mx-auto flex flex-col bg-background rounded-xl border shadow-sm overflow-hidden">
+        {/* HEADER: Bây giờ là một phần của khối chính */}
+        <header className="w-full flex-shrink-0 border-b h-16 flex items-center justify-between px-6">
+          {/* Tên thương hiệu, không còn logo */}
+          <h1 className="font-bold text-xl leading-none tracking-tight">
+            Zig<span className="text-primary">AI</span>
+          </h1>
 
-          {/* User info + logout */}
-          <div className="flex items-center gap-3 text-sm">
-            {session?.user?.email && (
-              <span className="hidden sm:inline opacity-80 truncate max-w-[10rem]">
-                {session.user.email}
-              </span>
+          {/* User Info + Logout */}
+          <div className="flex items-center gap-4 text-sm">
+            {status === 'loading' ? (
+                <div className="h-8 w-40 animate-pulse bg-muted rounded-md" />
+            ) : status === "authenticated" && session.user ? (
+                <>
+                    <span className="hidden md:inline text-muted-foreground font-medium">
+                        {session.user.email}
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Đăng xuất
+                    </Button>
+                </>
+            ) : (
+                <div className="h-8 w-24"></div>
             )}
-            <Button variant="destructive" size="sm" onClick={() => signOut()}>
-              Logout
-            </Button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* BODY */}
-      <section className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl h-[calc(100vh-6rem)]">
+        {/* BODY: ChatUI sẽ chiếm toàn bộ không gian còn lại */}
+        <div className="flex-1 overflow-y-auto">
           <ChatUI />
         </div>
-      </section>
-    </main>
-  );
+      </div>
+    </main>
+  );
 }
