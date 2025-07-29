@@ -6,31 +6,42 @@ export default withAuth(
   // Chúng ta chỉ cần thêm logic kiểm tra vai trò (role) ở đây.
   function middleware(req) {
     const token = req.nextauth.token;
-    const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+    const pathname = req.nextUrl.pathname;
 
-    // Nếu người dùng đang cố gắng truy cập vào trang admin
-    // nhưng vai trò của họ không phải là 'admin',
-    // hãy điều hướng họ về trang chủ.
-    if (isAdminRoute && token?.role !== "admin") {
+    const isAdmin = token?.role === "admin";
+    const isAdminRoute = pathname.startsWith("/admin");
+    // Trang chat bao gồm trang chủ ("/") và các trang con của nó
+    const isChatRoute = pathname === "/" || pathname.startsWith("/chat");
+
+    // Nếu người dùng không phải admin nhưng cố gắng truy cập trang admin,
+    // điều hướng họ về trang chủ.
+    if (isAdminRoute && !isAdmin) {
       return NextResponse.redirect(new URL("/", req.url));
     }
+
+    // CẬP NHẬT: Nếu người dùng là admin nhưng đang ở trang chat,
+    // tự động điều hướng họ về trang admin.
+    if (isChatRoute && isAdmin) {
+        return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
+    // Cho phép các yêu cầu khác đi qua
+    return NextResponse.next();
   },
   {
     callbacks: {
-      // Callback này được gọi để quyết định xem người dùng có được
-      // ủy quyền (authorized) hay không. Nếu trả về false, họ sẽ
-      // bị điều hướng đến trang đăng nhập.
-      authorized: ({ token }) => !!token, // Chỉ cần người dùng đã đăng nhập là được.
+      // Callback này chỉ yêu cầu người dùng phải đăng nhập để truy cập
+      // các trang trong `matcher`. Logic phân quyền chi tiết được xử lý ở trên.
+      authorized: ({ token }) => !!token,
     },
   }
 );
 
-// Cấu hình này đảm bảo middleware sẽ chỉ chạy trên các đường dẫn
-// được liệt kê, giúp tối ưu hiệu suất.
+// Cấu hình này đảm bảo middleware sẽ chỉ chạy trên các đường dẫn cần bảo vệ.
 export const config = {
   matcher: [
     "/admin/:path*", // Bảo vệ tất cả các trang con của /admin
-    "/",             // Bảo vệ trang chủ (yêu cầu đăng nhập)
-    "/chat/:path*",  // Bảo vệ các trang chat (yêu cầu đăng nhập)
+    "/",             // Bảo vệ trang chủ
+    "/chat/:path*",  // Bảo vệ các trang chat
   ],
 };
