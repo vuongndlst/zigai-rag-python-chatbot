@@ -3,14 +3,17 @@ import { requireAdmin } from '@/lib/requireAdmin';
 import { dbConnect } from '@/lib/mongodb';
 import { ModerationItem } from '@/models/ModerationItem';
 
-// SỬA LỖI: Đảm bảo sử dụng NextRequest để cung cấp kiểu dữ liệu chính xác cho App Router,
-// khắc phục lỗi "invalid 'GET' export" trong quá trình build.
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+// SỬA LỖI: Đơn giản hóa kiểu dữ liệu của tham số thứ hai để khắc phục lỗi build
+// trên các nền tảng như Vercel/Netlify.
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
     try {
         await requireAdmin();
         await dbConnect();
 
-        const sourceItem = await ModerationItem.findById(params.id).lean();
+        // Lấy id từ context.params
+        const { id } = context.params;
+
+        const sourceItem = await ModerationItem.findById(id).lean();
 
         if (!sourceItem || !sourceItem.promptEmbedding) {
             return NextResponse.json({ error: "Source item or its embedding not found." }, { status: 404 });
