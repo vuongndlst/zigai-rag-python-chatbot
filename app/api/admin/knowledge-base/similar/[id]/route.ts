@@ -1,12 +1,11 @@
-// ✅  Chỉ cần NextResponse
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { dbConnect } from "@/lib/mongodb";
 import { ModerationItem } from "@/models/ModerationItem";
 
 export async function GET(
-  req: Request,                                 // ← dùng Request chuẩn
-  { params }: { params: { id: string } }        // ← giữ nguyên context
+  req: Request,                                // ← Request gốc
+  { params }: { params: { id: string } }       // ← ctx
 ) {
   try {
     await requireAdmin();
@@ -30,12 +29,7 @@ export async function GET(
           limit: 5,
         },
       },
-      {
-        $match: {
-          status: "approved",
-          _id: { $ne: sourceItem._id },
-        },
-      },
+      { $match: { status: "approved", _id: { $ne: sourceItem._id } } },
       {
         $project: {
           _id: 1,
