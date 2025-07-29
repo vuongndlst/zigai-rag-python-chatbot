@@ -49,27 +49,8 @@ ZigAI được thiết kế cho giáo viên và học sinh **Lớp 10** học Py
 
 ## Kiến trúc
 
-```mermaid
-flowchart TD
-    A[Browser\nChat UI / Admin] -->|NextAuth| B(App Router APIs)
-    B --> C[MongoDB\nMongoose]
-    B --> D[LlamaIndex SDK]
-    D --> E[LlamaCloud\nManaged Index]
-    B --> F[OpenAI\nGPT-4o / 4o-mini]
-    B --> G[OpenAI Embeddings\ntext-embedding-3-small (1536)]
-    B --> H[Gemini\n(AI suggestion)]
-    C <-->|$vectorSearch| B
+![System Diagram](rag-python.png)
 
-    subgraph MongoDB
-      C1[(Users)]
-      C2[(Chats)]
-      C3[(ModerationItem\n+ promptEmbedding)]
-      C4[(UserQuery\n+ promptEmbedding)]
-      C5[(CacheHit)]
-      C6[(Source)]
-      C7[(SeedLog)]
-    end
-```
 
 **Luồng hỏi đáp tóm tắt**
 1. User hỏi → kiểm tra đăng nhập, lọc nội dung, giới hạn độ dài.  
@@ -85,8 +66,7 @@ flowchart TD
 - **NextAuth (Credentials)** – lưu `role` vào JWT/session.  
 - **MongoDB Atlas Search** – `$vectorSearch` cho KB & Trending.  
 - **LlamaIndex** + **LlamaCloud** – chỉ mục RAG chính.  
-- **OpenAI** – LLM & Embedding. **Gemini** – gợi ý kiểm duyệt.  
-- **(Tùy chọn)** Astra DB Vector – ingest/backup.
+- **OpenAI** – LLM & Embedding. **Gemini** – gợi ý kiểm duyệt.
 
 ---
 
@@ -136,12 +116,6 @@ LLAMA_CLOUD_API_KEY=...
 LLAMA_CLOUD_ORGANIZATION_ID=...
 LLAMA_CLOUD_PROJECT_NAME=zigai
 LLAMA_CLOUD_INDEX_NAME=python-10-kntt
-
-# ===== (Tùy chọn) Astra DB Vector =====
-ASTRA_DB_API_ENDPOINT=https://<id>-us-east1.apps.astra.datastax.com
-ASTRA_DB_APPLICATION_TOKEN=...
-ASTRA_DB_NAMESPACE=default_keyspace
-ASTRA_DB_COLLECTION=CL_PYTHON
 
 # ===== Seed admin mặc định (có thể đổi) =====
 ADMIN_USERNAME=admin
