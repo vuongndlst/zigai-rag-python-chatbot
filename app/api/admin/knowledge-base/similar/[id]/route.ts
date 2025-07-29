@@ -1,47 +1,53 @@
-import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/requireAdmin";
-import { dbConnect } from "@/lib/mongodb";
-import { ModerationItem } from "@/models/ModerationItem";
+import { NextResponse, NextRequest } from 'next/server';
+import { requireAdmin } from '@/lib/requireAdmin';
+import { dbConnect } from '@/lib/mongodb';
+import { ModerationItem } from '@/models/ModerationItem';
 
-export async function GET(
-  req: Request,                                // ← Request gốc
-  { params }: { params: { id: string } }       // ← ctx
-) {
-  try {
-    await requireAdmin();
-    await dbConnect();
+// SỬA LỖI: Sử dụng chữ ký hàm chính xác và đầy đủ nhất cho Next.js App Router
+// để khắc phục lỗi "invalid 'GET' export" trong quá trình build.
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        await requireAdmin();
+        await dbConnect();
 
-    const sourceItem = await ModerationItem.findById(params.id).lean();
-    if (!sourceItem?.promptEmbedding) {
-      return NextResponse.json(
-        { error: "Source item or its embedding not found." },
-        { status: 404 }
-      );
+        // Lấy id từ params đã được destructured
+        const { id } = params;
+
+        const sourceItem = await ModerationItem.findById(id).lean();
+
+        if (!sourceItem || !sourceItem.promptEmbedding) {
+            return NextResponse.json({ error: "Source item or its embedding not found." }, { status: 404 });
+        }
+
+        const similarItems = await ModerationItem.aggregate([
+            {
+                "$vectorSearch": {
+                    "index": "prompt_embedding_index", // Tên Vector Search Index của bạn
+                    "path": "promptEmbedding",
+                    "queryVector": sourceItem.promptEmbedding,
+                    "numCandidates": 10,
+                    "limit": 5
+                }
+            },
+            {
+                "$match": {
+                    "status": "approved",
+                    "_id": { "$ne": sourceItem._id }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "prompt": 1,
+                    "response": 1,
+                    "score": { "$meta": "vectorSearchScore" }
+                }
+            }
+        ]);
+
+        return NextResponse.json(similarItems);
+
+    } catch (e: any) {
+        return NextResponse.json({ error: e.message }, { status: 500 });
     }
-
-    const similarItems = await ModerationItem.aggregate([
-      {
-        $vectorSearch: {
-          index: "prompt_embedding_index",
-          path: "promptEmbedding",
-          queryVector: sourceItem.promptEmbedding,
-          numCandidates: 10,
-          limit: 5,
-        },
-      },
-      { $match: { status: "approved", _id: { $ne: sourceItem._id } } },
-      {
-        $project: {
-          _id: 1,
-          prompt: 1,
-          response: 1,
-          score: { $meta: "vectorSearchScore" },
-        },
-      },
-    ]);
-
-    return NextResponse.json(similarItems);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
 }
