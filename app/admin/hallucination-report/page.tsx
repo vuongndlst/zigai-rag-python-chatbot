@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { Loader, CheckCircle2, XCircle, Star, Target, ChevronDown, ChevronUp, BarChart2, ListChecks, Scale, LocateFixed, GitMerge } from 'lucide-react';
+import { Loader, CheckCircle2, XCircle, Star, Target, ChevronDown, ChevronUp, BarChart2, ListChecks, Scale, LocateFixed, GitMerge, CopyCheck, Timer, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,20 +10,49 @@ import { Badge } from '@/components/ui/badge';
 import ReactMarkdown from "react-markdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Định nghĩa các kiểu dữ liệu để code an toàn và dễ đọc hơn
+interface ITestResult {
+    _id: string;
+    testType: string;
+    question: string;
+    groundTruthAnswer: string;
+    chatbotAnswer: string;
+    explanation: string;
+    faithfulnessScore: number;
+    relevanceScore: number;
+    isHallucination: 'YES' | 'NO';
+}
+
+interface IBatchSummary {
+    batchId: string;
+    createdAt: string;
+    totalTests: number;
+    hallucinationRate: number;
+    avgFaithfulness: number;
+    avgRelevance: number;
+    conclusion?: string; // Thêm trường kết luận
+}
+
+interface IAdvancedMetrics {
+    precision: number;
+    recall: number;
+    f1Score: number;
+}
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-// NÂNG CẤP: Component hiển thị các chỉ số nâng cao (Precision, Recall, F1-Score)
-function AdvancedMetricsCard({ metrics }: { metrics: { precision: number; recall: number; f1Score: number } }) {
+// Component hiển thị các chỉ số nâng cao (Precision, Recall, F1-Score)
+function AdvancedMetricsCard({ metrics }: { metrics: IAdvancedMetrics }) {
     const formatPercent = (value: number) => isNaN(value) ? "N/A" : `${(value * 100).toFixed(1)}%`;
 
     return (
         <Card className="mb-6">
             <CardHeader>
-                <CardTitle className="text-lg">Các Chỉ số Đánh giá Nâng cao</CardTitle>
+                <CardTitle className="text-lg">Tóm tắt Hiệu suất Toàn diện</CardTitle>
                 <CardDescription>
-                    Các chỉ số này giúp đo lường hiệu suất của chatbot trong việc cân bằng giữa độ chính xác và độ bao phủ.
+                    Các chỉ số tổng hợp cho toàn bộ các bài test trong lần chạy này.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -49,9 +78,57 @@ function AdvancedMetricsCard({ metrics }: { metrics: { precision: number; recall
     );
 }
 
+// Component mới để hiển thị chi tiết theo từng loại test case được chọn
+function TypeSpecificMetrics({ results, selectedType }: { results: ITestResult[], selectedType: string | null }) {
+    const metrics = useMemo(() => {
+        if (!selectedType) return null;
+        const filteredResults = results.filter(r => r.testType === selectedType);
+        if (filteredResults.length === 0) return null;
+
+        const total = filteredResults.length;
+        const hallucinations = filteredResults.filter(r => r.isHallucination === 'YES').length;
+        const faithfulness = filteredResults.reduce((sum, r) => sum + (r.faithfulnessScore || 0), 0) / total;
+        const relevance = filteredResults.reduce((sum, r) => sum + (r.relevanceScore || 0), 0) / total;
+
+        return {
+            total,
+            hallucinationRate: (hallucinations / total) * 100,
+            faithfulness: faithfulness.toFixed(2),
+            relevance: relevance.toFixed(2),
+        };
+    }, [results, selectedType]);
+
+    if (!metrics) return null;
+
+    return (
+        <Card className="mt-4 bg-slate-50">
+            <CardContent className="pt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <p className="text-2xl font-bold">{metrics.total}</p>
+                        <p className="text-sm text-muted-foreground">Tổng số Test</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold text-red-600">{metrics.hallucinationRate.toFixed(1)}%</p>
+                        <p className="text-sm text-muted-foreground">Tỷ lệ Ảo giác</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold text-yellow-600">{metrics.faithfulness}</p>
+                        <p className="text-sm text-muted-foreground">Điểm Trung thực</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold text-blue-600">{metrics.relevance}</p>
+                        <p className="text-sm text-muted-foreground">Điểm Liên quan</p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 // Component hiển thị biểu đồ chi tiết cho một batch
-function BatchReportCharts({ results }: { results: any[] }) {
+function BatchReportCharts({ results }: { results: ITestResult[] }) {
     const analysisData = results.reduce((acc, result) => {
         const type = result.testType;
         if (!acc[type]) {
@@ -70,9 +147,9 @@ function BatchReportCharts({ results }: { results: any[] }) {
         acc[type].totalFaithfulness += result.faithfulnessScore || 0;
         acc[type].totalRelevance += result.relevanceScore || 0;
         return acc;
-    }, {} as any);
+    }, {} as Record<string, { name: string; total: number; hallucinations: number; totalFaithfulness: number; totalRelevance: number; }>);
 
-    const chartData = Object.values(analysisData).map((d: any) => ({
+    const chartData = Object.values(analysisData).map(d => ({
         name: (d.name || 'Không xác định').replace(/_/g, ' '),
         "Tỷ lệ ảo giác (%)": (d.hallucinations / d.total) * 100,
         "Điểm trung thực": d.totalFaithfulness / d.total,
@@ -141,10 +218,10 @@ function BatchReportCharts({ results }: { results: any[] }) {
 
 
 // Component hiển thị chi tiết từng test case
-function TestCasesDetailList({ results }: { results: any[] }) {
+function TestCasesDetailList({ results }: { results: ITestResult[] }) {
     return (
         <div className="space-y-4 p-4">
-            {results.map((result: any) => (
+            {results.map((result) => (
                 <Card key={result._id} className={result.isHallucination === 'YES' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}>
                     <CardHeader>
                         <CardTitle className="text-base">Câu hỏi: {result.question}</CardTitle>
@@ -179,18 +256,17 @@ function TestCasesDetailList({ results }: { results: any[] }) {
 }
 
 // Component cha chứa cả 2 tab Biểu đồ và Chi tiết
-function ExpandedBatchView({ batchId }: { batchId: string }) {
-    const { data: results, error } = useSWR(`/api/admin/hallucination-report?batchId=${batchId}`, fetcher);
+function ExpandedBatchView({ batchId, conclusion }: { batchId: string, conclusion?: string }) {
+    const { data: results, error } = useSWR<ITestResult[]>(`/api/admin/hallucination-report?batchId=${batchId}`, fetcher);
+    const [selectedTestType, setSelectedTestType] = useState<string | null>(null);
 
     const advancedMetrics = useMemo(() => {
         if (!results || results.length === 0) return { precision: 0, recall: 0, f1Score: 0 };
 
         let tp = 0, fp = 0, fn = 0;
-
-        results.forEach((result: any) => {
+        results.forEach((result) => {
             const hasAnswerInKb = result.groundTruthAnswer !== 'Refusal';
             const answeredCorrectly = result.isHallucination === 'NO';
-
             if (hasAnswerInKb && answeredCorrectly) tp++;
             else if (hasAnswerInKb && !answeredCorrectly) fp++;
             else if (!hasAnswerInKb && !answeredCorrectly) fn++;
@@ -203,6 +279,11 @@ function ExpandedBatchView({ batchId }: { batchId: string }) {
         return { precision, recall, f1Score };
     }, [results]);
 
+    const testTypes = useMemo(() => {
+        if (!results) return [];
+        return [...new Set(results.map((r) => r.testType).filter(Boolean))].sort() as string[];
+    }, [results]);
+
     if (error) return <p className="text-red-500 p-4">Không thể tải chi tiết lần chạy.</p>;
     if (!results) return <div className="flex justify-center p-10"><Loader className="h-8 w-8 animate-spin" /></div>;
 
@@ -213,8 +294,44 @@ function ExpandedBatchView({ batchId }: { batchId: string }) {
                     <TabsTrigger value="charts"><BarChart2 className="mr-2 h-4 w-4" />Phân tích & Biểu đồ</TabsTrigger>
                     <TabsTrigger value="details"><ListChecks className="mr-2 h-4 w-4" />Chi tiết Test Case</TabsTrigger>
                 </TabsList>
-                <TabsContent value="charts" className="p-4">
+                <TabsContent value="charts" className="p-4 space-y-6">
+                    {/* NÂNG CẤP: Hiển thị kết luận */}
+                    {conclusion && (
+                        <Card className="bg-amber-50 border-amber-200">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center">
+                                    <FileText className="mr-2 h-5 w-5" />
+                                    Kết luận & Đề xuất
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="prose prose-sm max-w-none">
+                                <ReactMarkdown>{conclusion}</ReactMarkdown>
+                            </CardContent>
+                        </Card>
+                    )}
+                    
                     <AdvancedMetricsCard metrics={advancedMetrics} />
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Phân tích chi tiết theo Loại Test Case</CardTitle>
+                            <CardDescription>Chọn một loại test case để xem các chỉ số riêng.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Select onValueChange={setSelectedTestType}>
+                                <SelectTrigger className="w-[280px]">
+                                    <SelectValue placeholder="Chọn một loại test case..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {testTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{type.replace(/_/g, ' ')}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <TypeSpecificMetrics results={results} selectedType={selectedTestType} />
+                        </CardContent>
+                    </Card>
+                    
                     <BatchReportCharts results={results} />
                 </TabsContent>
                 <TabsContent value="details">
@@ -227,7 +344,7 @@ function ExpandedBatchView({ batchId }: { batchId: string }) {
 
 
 export default function HallucinationReportPage() {
-    const { data: batches, error } = useSWR('/api/admin/hallucination-report', fetcher);
+    const { data: batches, error } = useSWR<IBatchSummary[]>('/api/admin/hallucination-report', fetcher);
     const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
 
     const toggleBatchDetails = (batchId: string) => {
@@ -260,7 +377,7 @@ export default function HallucinationReportPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {batches.map((batch: any) => (
+                            {batches.map((batch) => (
                                 <React.Fragment key={batch.batchId}>
                                     <TableRow onClick={() => toggleBatchDetails(batch.batchId)} className="cursor-pointer hover:bg-muted/50">
                                         <TableCell className="font-medium">{new Date(batch.createdAt).toLocaleString('vi-VN')}</TableCell>
@@ -298,7 +415,8 @@ export default function HallucinationReportPage() {
                                     {expandedBatchId === batch.batchId && (
                                         <TableRow>
                                             <TableCell colSpan={7} className="p-0">
-                                                <ExpandedBatchView batchId={batch.batchId} />
+                                                {/* NÂNG CẤP: Truyền conclusion vào component con */}
+                                                <ExpandedBatchView batchId={batch.batchId} conclusion={batch.conclusion} />
                                             </TableCell>
                                         </TableRow>
                                     )}
