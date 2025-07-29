@@ -2,17 +2,34 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import useSWR from 'swr';
-import { UploadCloud, Loader, CheckCircle2, XCircle, FileText, Clock, FileStack } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
+import { UploadCloud, Loader, FileText, Clock, FileStack, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+// SỬA LỖI: Component mới để xử lý Hydration Mismatch cho ngày tháng
+function ClientSideDate({ dateString }: { dateString: string }) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        // Render một placeholder hoặc null trên server và trong lần render đầu tiên của client
+        return null;
+    }
+
+    return <>{new Date(dateString).toLocaleString('vi-VN')}</>;
+}
+
 
 // Component con để hiển thị lịch sử các lần xử lý
 function SeedHistory() {
@@ -46,7 +63,8 @@ function SeedHistory() {
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                     {log.filename || "Không rõ"}
                                 </TableCell>
-                                <TableCell>{new Date(log.createdAt).toLocaleString('vi-VN')}</TableCell>
+                                {/* SỬA LỖI: Sử dụng component ClientSideDate */}
+                                <TableCell><ClientSideDate dateString={log.createdAt} /></TableCell>
                                 <TableCell>
                                     <Badge variant={log.status === 'Thành công' ? 'default' : 'destructive'} className={log.status === 'Thành công' ? 'bg-green-600' : ''}>
                                         {log.status}
@@ -84,6 +102,8 @@ export default function DatasourcesPage() {
     const [logs, setLogs] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref cho input file
+    const { mutate } = useSWRConfig(); // Hook để trigger refresh SWR
 
     useEffect(() => {
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,6 +112,7 @@ export default function DatasourcesPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setFile(e.target.files[0]);
+            setError(null); // Xóa lỗi cũ khi chọn file mới
         }
     };
 
@@ -132,7 +153,19 @@ export default function DatasourcesPage() {
             setError(`Xử lý thất bại: ${errorMessage}`);
             setLogs(prev => [...prev, `\n💥 Lỗi kết nối: ${errorMessage}`]);
         } finally {
-            // Giữ lại log và trạng thái processing để người dùng xem, có thể thêm nút "Hoàn tất" để reset
+            // SỬA LỖI: Luôn luôn reset trạng thái xử lý và làm mới lịch sử
+            setIsProcessing(false);
+            mutate('/api/admin/seed-logs'); // Trigger refresh cho component SeedHistory
+        }
+    };
+
+    // NÂNG CẤP: Hàm để reset form và tải file khác
+    const handleReset = () => {
+        setFile(null);
+        setLogs([]);
+        setError(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset giá trị của input file
         }
     };
 
@@ -144,15 +177,30 @@ export default function DatasourcesPage() {
                     <CardDescription>Chọn một file PDF để xử lý và nạp vào Knowledge Base của chatbot.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Input type="file" accept=".pdf" onChange={handleFileChange} disabled={isProcessing} />
+                    <Input 
+                        ref={fileInputRef}
+                        type="file" 
+                        accept=".pdf" 
+                        onChange={handleFileChange} 
+                        disabled={isProcessing} 
+                    />
                     <Button onClick={handleUpload} disabled={isProcessing || !file}>
                         {isProcessing ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                         {isProcessing ? 'Đang xử lý...' : 'Tải lên và Xử lý'}
                     </Button>
                     {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-                    {(isProcessing || logs.length > 0) && (
+                    {(logs.length > 0) && (
                          <div className="mt-4">
-                            <h3 className="font-semibold mb-2">Tiến trình xử lý:</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-semibold">Tiến trình xử lý:</h3>
+                                {/* NÂNG CẤP: Hiển thị nút reset khi không còn xử lý */}
+                                {!isProcessing && (
+                                    <Button variant="outline" size="sm" onClick={handleReset}>
+                                        <X className="mr-2 h-4 w-4" />
+                                        Xóa Log & Tải file khác
+                                    </Button>
+                                )}
+                            </div>
                             <pre ref={logsEndRef} className="bg-gray-900 text-white font-mono text-sm rounded-lg p-4 h-64 overflow-y-auto">
                                 {logs.join('')}
                             </pre>
@@ -165,3 +213,4 @@ export default function DatasourcesPage() {
         </div>
     );
 }
+    

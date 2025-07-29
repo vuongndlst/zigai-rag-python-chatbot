@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const { email } = await request.json();
   try {
     const token = await createResetToken(email);
-    const resetUrl = \`\${process.env.NEXTAUTH_URL}/reset?token=\${token}\`;
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset?token=${token}`;
     console.log("Password reset link:", resetUrl);
     // TODO: send email with resetUrl
     return NextResponse.json({ ok: true });
