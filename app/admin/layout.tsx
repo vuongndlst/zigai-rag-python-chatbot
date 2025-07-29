@@ -1,79 +1,108 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Users, UploadCloud, LayoutDashboard, CheckSquare, Database } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+    Users, 
+    UploadCloud, 
+    LayoutDashboard, 
+    CheckSquare, 
+    Database, 
+    TestTube2,
+    Bot 
+} from 'lucide-react';
 
-// Cấu hình các mục trong sidebar
+// Cấu hình các mục trong sidebar từ code của bạn
 const sidebarNavItems = [
-  {
-    title: "Dashboard",
-    href: "/admin",
-    icon: <LayoutDashboard className="h-4 w-4" />,
-  },
-  {
-    title: "Kiểm duyệt Q&A",
-    href: "/admin/moderation",
-    icon: <CheckSquare className="h-4 w-4" />,
-  },
-  {
-    title: "Knowledge Base",
-    href: "/admin/knowledge-base",
-    icon: <Database className="h-4 w-4" />,
-  },
-  {
-    title: "Quản lý người dùng",
-    href: "/admin/users",
-    icon: <Users className="h-4 w-4" />,
-  },
-  {
-    title: "Quản lý Datasource",
-    href: "/admin/datasources",
-    icon: <UploadCloud className="h-4 w-4" />,
-  },
+    {
+        title: "Dashboard",
+        href: "/admin",
+        icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+        title: "Kiểm duyệt Q&A",
+        href: "/admin/moderation",
+        icon: <CheckSquare className="h-5 w-5" />,
+    },
+    {
+        title: "Knowledge Base",
+        href: "/admin/knowledge-base",
+        icon: <Database className="h-5 w-5" />,
+    },
+    {
+        title: "Quản lý người dùng",
+        href: "/admin/users",
+        icon: <Users className="h-5 w-5" />,
+    },
+    {
+        title: "Quản lý Datasource",
+        href: "/admin/datasources",
+        icon: <UploadCloud className="h-5 w-5" />,
+    },
+    {
+        title: "Báo cáo ảo giác",
+        href: "/admin/hallucination-report",
+        icon: <TestTube2 className="h-5 w-5" />,
+    },
 ];
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
+// Component Sidebar được tách riêng cho gọn gàng
+function Sidebar() {
+    const pathname = usePathname();
 
-  return (
-    <div className="container mx-auto py-10">
-        <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Bảng điều khiển Admin</h1>
-            <p className="text-muted-foreground">Quản lý hệ thống ZigAI.</p>
+    return (
+        <div className="flex flex-col w-64 h-full px-4 py-8 bg-white border-r dark:bg-gray-900 dark:border-gray-700 rounded-xl shadow-sm">
+            {/* Logo và Tiêu đề */}
+            <div className="flex items-center px-2 mb-10">
+                <Bot className="h-8 w-8 mr-3 text-blue-600" />
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">ZigAI Admin</h2>
+            </div>
+            
+            {/* Các mục điều hướng */}
+            <nav className="flex flex-col gap-2">
+                {sidebarNavItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center rounded-lg px-3 py-2 text-gray-600 transition-colors duration-200 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                            // So sánh chính xác href hoặc href con
+                            pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+                            ? "bg-blue-100 text-blue-700 dark:bg-gray-800"
+                            : "hover:text-gray-800 dark:hover:text-gray-200"
+                        }`}
+                    >
+                        {item.icon}
+                        <span className="ml-3 text-sm font-medium">{item.title}</span>
+                    </Link>
+                ))}
+            </nav>
         </div>
-        
-        {/* Container chính cho sidebar và nội dung */}
-        <div className="flex flex-col gap-8 md:flex-row md:gap-12">
-            {/* Sidebar */}
-            <aside className="md:w-1/5 lg:w-1/6">
-                <nav className="flex flex-row gap-2 overflow-x-auto md:flex-col md:gap-1">
-                    {sidebarNavItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`inline-flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-                                pathname === item.href
-                                ? "bg-accent text-accent-foreground"
-                                : "text-muted-foreground"
-                            }`}
-                        >
-                            {item.icon}
-                            <span className="ml-2">{item.title}</span>
-                        </Link>
-                    ))}
-                </nav>
+    );
+}
+
+/**
+ * Component Layout chính cho trang Admin.
+ * Component này tạo ra một cấu trúc với sidebar cố định bên trái
+ * và vùng nội dung chính có thể cuộn độc lập bên phải.
+ */
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+            {/* Sidebar - Cố định, không cuộn, với margin trái */}
+            <aside className="hidden md:flex flex-shrink-0 py-8 pl-[5%]">
+                <Sidebar />
             </aside>
 
-            {/* Khu vực nội dung chính */}
-            <main className="flex-1">
-              {children}
-            </main>
+            {/* Vùng nội dung chính - Có thể cuộn */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+                <main className="relative flex-1 focus:outline-none overflow-y-auto">
+                    <div className="py-8 px-4 md:px-10">
+                        {/* Nội dung của từng trang con (bao gồm cả tiêu đề) sẽ được hiển thị ở đây */}
+                        {children}
+                    </div>
+                </main>
+            </div>
         </div>
-    </div>
-  );
+    );
 }
