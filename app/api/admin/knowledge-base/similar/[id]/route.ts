@@ -3,7 +3,8 @@ import { requireAdmin } from '@/lib/requireAdmin';
 import { dbConnect } from '@/lib/mongodb';
 import { ModerationItem } from '@/models/ModerationItem';
 
-// Sử dụng NextRequest để đảm bảo kiểu dữ liệu chính xác cho App Router
+// SỬA LỖI: Đảm bảo sử dụng NextRequest để cung cấp kiểu dữ liệu chính xác cho App Router,
+// khắc phục lỗi "invalid 'GET' export" trong quá trình build.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         await requireAdmin();
