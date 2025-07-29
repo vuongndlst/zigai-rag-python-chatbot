@@ -199,9 +199,6 @@ Tạo **2 search index** trong MongoDB Atlas.
 | `npm run seed` | Chạy `scripts/loadDb.ts`: đọc tài liệu, **đề xuất Q&A**, **cross-check OpenAI + Gemini**, ghi vào **ModerationItem(status=pending)** để admin duyệt. |
 | _`scripts/generateKB.ts`_ | Tạo Q&A từ thư mục tài liệu; phù hợp để mở rộng KB. |
 | _`view-llama-cloud-data.mjs`_ | Đọc dữ liệu từ LlamaCloud Index và xuất CSV. |
-
-> **Astra DB Vector (tùy chọn):** `lib/seedService.ts` chứa pipeline ingest (chunk 512/100, dim=1536, dot_product). Nếu muốn dùng Astra cho **truy hồi runtime**, cần sửa `/api/chat` để lấy ngữ cảnh từ Astra thay vì LlamaCloud.
-
 ---
 
 ## Cách sử dụng
