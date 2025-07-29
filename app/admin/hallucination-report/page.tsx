@@ -1,8 +1,14 @@
 "use client";
 
+<<<<<<< HEAD
 import React, { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { Loader, CheckCircle2, XCircle, Star, Target, ChevronDown, ChevronUp, BarChart2, ListChecks, Scale, LocateFixed, GitMerge } from 'lucide-react';
+=======
+import useSWR from 'swr';
+import { useState } from 'react';
+import { Loader, CheckCircle2, XCircle, Star, Target, ChevronDown, ChevronUp, BarChart2, ListChecks } from 'lucide-react';
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +20,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+<<<<<<< HEAD
 // NÂNG CẤP: Component hiển thị các chỉ số nâng cao (Precision, Recall, F1-Score)
 function AdvancedMetricsCard({ metrics }: { metrics: { precision: number; recall: number; f1Score: number } }) {
     const formatPercent = (value: number) => isNaN(value) ? "N/A" : `${(value * 100).toFixed(1)}%`;
@@ -50,6 +57,8 @@ function AdvancedMetricsCard({ metrics }: { metrics: { precision: number; recall
 }
 
 
+=======
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
 // Component hiển thị biểu đồ chi tiết cho một batch
 function BatchReportCharts({ results }: { results: any[] }) {
     const analysisData = results.reduce((acc, result) => {
@@ -73,14 +82,22 @@ function BatchReportCharts({ results }: { results: any[] }) {
     }, {} as any);
 
     const chartData = Object.values(analysisData).map((d: any) => ({
+<<<<<<< HEAD
         name: (d.name || 'Không xác định').replace(/_/g, ' '),
+=======
+        name: d.name.replace(/_/g, ' '),
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
         "Tỷ lệ ảo giác (%)": (d.hallucinations / d.total) * 100,
         "Điểm trung thực": d.totalFaithfulness / d.total,
         "Điểm liên quan": d.totalRelevance / d.total,
     }));
 
     return (
+<<<<<<< HEAD
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+=======
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4">
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
             <Card className="lg:col-span-1">
                 <CardHeader>
                     <CardTitle className="text-lg">Tỷ lệ Ảo giác</CardTitle>
@@ -182,6 +199,7 @@ function TestCasesDetailList({ results }: { results: any[] }) {
 function ExpandedBatchView({ batchId }: { batchId: string }) {
     const { data: results, error } = useSWR(`/api/admin/hallucination-report?batchId=${batchId}`, fetcher);
 
+<<<<<<< HEAD
     // NÂNG CẤP: Tính toán các chỉ số nâng cao bằng useMemo
     const advancedMetrics = useMemo(() => {
         if (!results) return { precision: 0, recall: 0, f1Score: 0 };
@@ -208,6 +226,8 @@ function ExpandedBatchView({ batchId }: { batchId: string }) {
         return { precision, recall, f1Score };
     }, [results]);
 
+=======
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
     if (error) return <p className="text-red-500 p-4">Không thể tải chi tiết lần chạy.</p>;
     if (!results) return <div className="flex justify-center p-10"><Loader className="h-8 w-8 animate-spin" /></div>;
 
@@ -218,8 +238,12 @@ function ExpandedBatchView({ batchId }: { batchId: string }) {
                     <TabsTrigger value="charts"><BarChart2 className="mr-2 h-4 w-4" />Phân tích & Biểu đồ</TabsTrigger>
                     <TabsTrigger value="details"><ListChecks className="mr-2 h-4 w-4" />Chi tiết Test Case</TabsTrigger>
                 </TabsList>
+<<<<<<< HEAD
                 <TabsContent value="charts" className="p-4">
                     <AdvancedMetricsCard metrics={advancedMetrics} />
+=======
+                <TabsContent value="charts">
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                     <BatchReportCharts results={results} />
                 </TabsContent>
                 <TabsContent value="details">
@@ -260,15 +284,23 @@ export default function HallucinationReportPage() {
                                 <TableHead>Tỷ lệ ảo giác</TableHead>
                                 <TableHead>Điểm trung thực</TableHead>
                                 <TableHead>Điểm liên quan</TableHead>
+<<<<<<< HEAD
                                 {/* NÂNG CẤP: Thêm cột F1-Score */}
                                 <TableHead>F1-Score</TableHead>
+=======
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                                 <TableHead className="text-right">Chi tiết</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {batches.map((batch: any) => (
+<<<<<<< HEAD
                                 <React.Fragment key={batch.batchId}>
                                     <TableRow onClick={() => toggleBatchDetails(batch.batchId)} className="cursor-pointer hover:bg-muted/50">
+=======
+                                <>
+                                    <TableRow key={batch.batchId} onClick={() => toggleBatchDetails(batch.batchId)} className="cursor-pointer hover:bg-muted/50">
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                                         <TableCell className="font-medium">{new Date(batch.createdAt).toLocaleString('vi-VN')}</TableCell>
                                         <TableCell>{batch.totalTests}</TableCell>
                                         <TableCell>
@@ -289,6 +321,7 @@ export default function HallucinationReportPage() {
                                                 <span>{batch.avgRelevance.toFixed(2)} / 5</span>
                                             </div>
                                         </TableCell>
+<<<<<<< HEAD
                                         {/* NÂNG CẤP: Hiển thị F1-Score */}
                                         <TableCell>
                                             <div className="flex items-center gap-2">
@@ -297,6 +330,8 @@ export default function HallucinationReportPage() {
                                                 <span>{batch.f1Score ? `${(batch.f1Score * 100).toFixed(1)}%` : 'N/A'}</span>
                                             </div>
                                         </TableCell>
+=======
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm">
                                                 {expandedBatchId === batch.batchId ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -305,12 +340,20 @@ export default function HallucinationReportPage() {
                                     </TableRow>
                                     {expandedBatchId === batch.batchId && (
                                         <TableRow>
+<<<<<<< HEAD
                                             <TableCell colSpan={7} className="p-0">
+=======
+                                            <TableCell colSpan={6} className="p-0">
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                                                 <ExpandedBatchView batchId={batch.batchId} />
                                             </TableCell>
                                         </TableRow>
                                     )}
+<<<<<<< HEAD
                                 </React.Fragment>
+=======
+                                </>
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
                             ))}
                         </TableBody>
                     </Table>

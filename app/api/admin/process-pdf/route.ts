@@ -7,10 +7,16 @@ import { dbConnect } from '@/lib/mongodb';
 import SeedLog from '@/models/SeedLog';
 import Source from '@/models/Source';
 
+<<<<<<< HEAD
 // SỬA LỖI: Import Document để tạo đối tượng tài liệu thủ công
 import { Settings, NodeParser, Document } from "@llamaindex/core/global";
 // SỬA LỖI: Bỏ SimpleDirectoryReader và thay bằng pdf-parse
 import pdfParse from "pdf-parse";
+=======
+// NÂNG CẤP: Thay đổi import để trỏ đến các gói con cụ thể, giúp ổn định hơn
+import { Settings, NodeParser } from "@llamaindex/core/global";
+import { SimpleDirectoryReader } from "@llamaindex/readers";
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
 import { LlamaCloudIndex } from "@llamaindex/cloud";
 import { GeminiEmbedding } from "@llamaindex/google";
 import "dotenv/config";
@@ -85,6 +91,7 @@ export async function POST(req: Request) {
                     Settings.chunkOverlap = 50;
                     sendToClient("   - ✅ Cấu hình hoàn tất.\n");
 
+<<<<<<< HEAD
                     // b. Đọc và phân tích file PDF vừa tải lên
                     sendToClient(`📄 Đang đọc và phân tích tài liệu: ${file.name}...\n`);
                     // SỬA LỖI: Đọc và phân tích PDF thủ công để tránh lỗi import
@@ -93,6 +100,13 @@ export async function POST(req: Request) {
                     const documents = [new Document({ text: pdfData.text, id_: filePath })];
                     sendToClient(`   - ✅ Đã đọc và phân tích thành công 1 tài liệu.\n`);
 
+=======
+                    // b. Đọc file PDF vừa tải lên
+                    sendToClient(`📄 Đang đọc tài liệu: ${file.name}...\n`);
+                    const reader = new SimpleDirectoryReader();
+                    const documents = await reader.loadData({ inputFile: filePath });
+                    sendToClient(`   - ✅ Đã đọc thành công 1 tài liệu.\n`);
+>>>>>>> ef258614f6810dde7e331556774f8221495abb1d
 
                     // c. Chia tài liệu thành các chunk để đếm
                     const nodeParser = new NodeParser({
