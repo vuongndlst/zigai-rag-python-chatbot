@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/requireAdmin';
 import { dbConnect } from '@/lib/mongodb';
 import { ModerationItem } from '@/models/ModerationItem';
 
-// SỬA LỖI: Sử dụng NextRequest để đảm bảo kiểu dữ liệu chính xác
+// Sử dụng NextRequest để đảm bảo kiểu dữ liệu chính xác cho App Router
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         await requireAdmin();
